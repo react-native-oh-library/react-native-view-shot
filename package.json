@@ -1,6 +1,6 @@
 {
-  "name": "react-native-view-shot",
-  "version": "3.8.0",
+  "name": "@react-native-oh-tpl/react-native-view-shot",
+  "version": "3.8.0-0.0.0",
   "description": "Capture a React Native view to an image",
   "main": "src/index.js",
   "types": "src/index.d.ts",
@@ -15,9 +15,13 @@
   "author": "Gaëtan Renaudeau <renaudeau.gaetan@gmail.com>",
   "homepage": "https://github.com/gre/react-native-view-shot",
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/gre/react-native-view-shot.git"
+    "url": "https://github.com/react-native-oh-library/react-native-view-shot.git"
   },
   "dependencies": {
     "html2canvas": "^1.4.1"
