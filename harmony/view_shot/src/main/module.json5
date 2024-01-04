@@ -1,0 +1,9 @@
+{
+  "module": {
+    "name": "view_shot",
+    "type": "har",
+    "deviceTypes": [
+      "default"
+    ]
+  }
+}
