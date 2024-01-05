@@ -136,7 +136,7 @@ export class ViewShotTurboModule extends TurboModule {
       let photoType = photoAccessHelper.PhotoType.IMAGE;
       let extension = option.format;
       let options: photoAccessHelper.CreateOptions = {
-        title: option.fileName ? option.fileName : title + '-' + this.getNowTime();
+        title: option.fileName ? option.fileName : title + '-' + this.getNowTime()
       }
       this.phAccessHelper.createAsset(photoType, extension, options, (err, uri) => {
         if (uri != undefined) {

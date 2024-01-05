@@ -1,7 +1,14 @@
 {
-  "name": "react-native-view-shot",
-  "version": "3.8.0",
+  "name": "@react-native-oh-tpl/react-native-view-shot",
+  "version": "3.8.0-0.1.0",
   "description": "Capture a React Native view to an image",
+  "harmony": {
+    "alias": "react-native-view-shot"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "keywords": [
@@ -17,7 +24,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gre/react-native-view-shot.git"
+    "url": "https://github.com/react-native-oh-library/react-native-view-shot.git"
   },
   "dependencies": {
     "html2canvas": "^1.4.1"

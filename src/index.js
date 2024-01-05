@@ -1,13 +1,9 @@
 // @flow
-import React, { Component } from "react";
-import { View, Platform, findNodeHandle, StyleProp } from "react-native";
-import RNViewShot from "./RNViewShot";
-import type { ViewStyleProp } from "react-native/Libraries/StyleSheet/StyleSheet";
-import type { LayoutEvent } from "react-native/Libraries/Types/CoreEventTypes";
-
-const neverEndingPromise = new Promise(() => {});
+import { View, Platform, findNodeHandle } from "react-native";
+import NativeViewShot from "./NativeViewShot";
 
 type Options = {
+  fileName?: string,
   width?: number,
   height?: number,
   format: "png" | "jpg" | "webm" | "raw",
@@ -17,9 +13,9 @@ type Options = {
   handleGLSurfaceViewOnAndroid: boolean,
 };
 
-if (!RNViewShot) {
+if (!NativeViewShot) {
   console.warn(
-    "react-native-view-shot: NativeModules.RNViewShot is undefined. Make sure the library is linked on the native side."
+    "react-native-view-shot: NativeViewShot is undefined. Make sure the library is linked on the native side."
   );
 }
 
@@ -99,9 +95,9 @@ function validateOptions(input: ?$Shape<Options>): {
 }
 
 export function ensureModuleIsLoaded() {
-  if (!RNViewShot) {
+  if (!NativeViewShot) {
     throw new Error(
-      "react-native-view-shot: NativeModules.RNViewShot is undefined. Make sure the library is linked on the native side."
+      "react-native-view-shot: NativeViewShot is undefined. Make sure the library is linked on the native side."
     );
   }
 }
@@ -140,7 +136,7 @@ export function captureRef<T: React$ElementType>(
         errors.map((e) => `- ${e}`).join("\n")
     );
   }
-  return RNViewShot.captureRef(view, options);
+  return NativeViewShot.captureRef(view, options);
 }
 
 export function releaseCapture(uri: string): void {
@@ -149,7 +145,7 @@ export function releaseCapture(uri: string): void {
       console.warn("Invalid argument to releaseCapture. Got: " + uri);
     }
   } else {
-    RNViewShot.releaseCapture(uri);
+    NativeViewShot.releaseCapture(uri);
   }
 }
 
@@ -162,147 +158,5 @@ export function captureScreen(optionsObject?: Options): Promise<string> {
         errors.map((e) => `- ${e}`).join("\n")
     );
   }
-  return RNViewShot.captureScreen(options);
-}
-
-type Props = {
-  options?: Object,
-  captureMode?: "mount" | "continuous" | "update",
-  children: React$Node,
-  onLayout?: (e: *) => void,
-  onCapture?: (uri: string) => void,
-  onCaptureFailure?: (e: Error) => void,
-  style?: StyleProp<ViewStyleProp>,
-};
-
-function checkCompatibleProps(props: Props) {
-  if (!props.captureMode && props.onCapture) {
-    // in that case, it's authorized if you call capture() yourself
-  } else if (props.captureMode && !props.onCapture) {
-    console.warn(
-      "react-native-view-shot: captureMode prop is defined but onCapture prop callback is missing"
-    );
-  } else if (
-    (props.captureMode === "continuous" || props.captureMode === "update") &&
-    props.options &&
-    props.options.result &&
-    props.options.result !== "tmpfile"
-  ) {
-    console.warn(
-      "react-native-view-shot: result=tmpfile is recommended for captureMode=" +
-        props.captureMode
-    );
-  }
-}
-
-export default class ViewShot extends Component<Props> {
-  static captureRef = captureRef;
-  static releaseCapture = releaseCapture;
-
-  root: ?View;
-
-  _raf: *;
-  lastCapturedURI: ?string;
-
-  resolveFirstLayout: (layout: Object) => void;
-  firstLayoutPromise: Promise<Object> = new Promise((resolve) => {
-    this.resolveFirstLayout = resolve;
-  });
-
-  capture = (): Promise<string> =>
-    this.firstLayoutPromise
-      .then(() => {
-        const { root } = this;
-        if (!root) return neverEndingPromise; // component is unmounted, you never want to hear back from the promise
-        return captureRef(root, this.props.options);
-      })
-      .then(
-        (uri: string) => {
-          this.onCapture(uri);
-          return uri;
-        },
-        (e: Error) => {
-          this.onCaptureFailure(e);
-          throw e;
-        }
-      );
-
-  onCapture = (uri: string) => {
-    if (!this.root) return;
-    if (this.lastCapturedURI) {
-      // schedule releasing the previous capture
-      setTimeout(releaseCapture, 500, this.lastCapturedURI);
-    }
-    this.lastCapturedURI = uri;
-    const { onCapture } = this.props;
-    if (onCapture) onCapture(uri);
-  };
-
-  onCaptureFailure = (e: Error) => {
-    if (!this.root) return;
-    const { onCaptureFailure } = this.props;
-    if (onCaptureFailure) onCaptureFailure(e);
-  };
-
-  syncCaptureLoop = (captureMode: ?string) => {
-    cancelAnimationFrame(this._raf);
-    if (captureMode === "continuous") {
-      let previousCaptureURI = "-"; // needs to capture at least once at first, so we use "-" arbitrary string
-      const loop = () => {
-        this._raf = requestAnimationFrame(loop);
-        if (previousCaptureURI === this.lastCapturedURI) return; // previous capture has not finished, don't capture yet
-        previousCaptureURI = this.lastCapturedURI;
-        this.capture();
-      };
-      this._raf = requestAnimationFrame(loop);
-    }
-  };
-
-  onRef = (ref: React$ElementRef<*>) => {
-    this.root = ref;
-  };
-
-  onLayout = (e: LayoutEvent) => {
-    const { onLayout } = this.props;
-    this.resolveFirstLayout(e.nativeEvent.layout);
-    if (onLayout) onLayout(e);
-  };
-
-  componentDidMount() {
-    if (__DEV__) checkCompatibleProps(this.props);
-    if (this.props.captureMode === "mount") {
-      this.capture();
-    } else {
-      this.syncCaptureLoop(this.props.captureMode);
-    }
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (this.props.captureMode !== undefined) {
-      if (this.props.captureMode !== prevProps.captureMode) {
-        this.syncCaptureLoop(this.props.captureMode);
-      }
-    }
-    if (this.props.captureMode === "update") {
-      this.capture();
-    }
-  }
-
-  componentWillUnmount() {
-    this.syncCaptureLoop(null);
-  }
-
-  render() {
-    const { children } = this.props;
-    return (
-      <View
-        ref={this.onRef}
-        collapsable={false}
-        onLayout={this.onLayout}
-        style={this.props.style}
-      >
-        {children}
-      </View>
-    );
-  }
+  return NativeViewShot.captureScreen(options);
 }
