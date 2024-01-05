@@ -7,6 +7,6 @@ export interface Spec extends TurboModule {
     captureScreen(options?: Options): Promise<string>;
     releaseCapture(uri: string): void;
 }
-export default (TurboModuleRegistry.get < Spec > (
+export default (TurboModuleRegistry.getEnforcing< Spec > (
     'ViewShotTurboModule'
 ): ?Spec);
