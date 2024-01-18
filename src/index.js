@@ -1,6 +1,6 @@
 // @flow
 import { View, Platform, findNodeHandle } from "react-native";
-import NativeViewShot from "./NativeViewShot";
+import RNViewShot from "./NativeModule";
 
 type Options = {
   fileName?: string,
@@ -13,9 +13,9 @@ type Options = {
   handleGLSurfaceViewOnAndroid: boolean,
 };
 
-if (!NativeViewShot) {
+if (!RNViewShot) {
   console.warn(
-    "react-native-view-shot: NativeViewShot is undefined. Make sure the library is linked on the native side."
+    "react-native-view-shot: NativeModules.RNViewShot is undefined. Make sure the library is linked on the native side."
   );
 }
 
@@ -95,9 +95,9 @@ function validateOptions(input: ?$Shape<Options>): {
 }
 
 export function ensureModuleIsLoaded() {
-  if (!NativeViewShot) {
+  if (!RNViewShot) {
     throw new Error(
-      "react-native-view-shot: NativeViewShot is undefined. Make sure the library is linked on the native side."
+      "react-native-view-shot: NativeModules.RNViewShot is undefined. Make sure the library is linked on the native side."
     );
   }
 }
@@ -136,7 +136,7 @@ export function captureRef<T: React$ElementType>(
         errors.map((e) => `- ${e}`).join("\n")
     );
   }
-  return NativeViewShot.captureRef(view, options);
+  return RNViewShot.captureRef(view, options);
 }
 
 export function releaseCapture(uri: string): void {
@@ -145,7 +145,7 @@ export function releaseCapture(uri: string): void {
       console.warn("Invalid argument to releaseCapture. Got: " + uri);
     }
   } else {
-    NativeViewShot.releaseCapture(uri);
+    RNViewShot.releaseCapture(uri);
   }
 }
 
@@ -158,5 +158,5 @@ export function captureScreen(optionsObject?: Options): Promise<string> {
         errors.map((e) => `- ${e}`).join("\n")
     );
   }
-  return NativeViewShot.captureScreen(options);
+  return RNViewShot.captureScreen(options);
 }

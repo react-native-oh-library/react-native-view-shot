@@ -1,6 +1,6 @@
 {
   "name": "@react-native-oh-tpl/react-native-view-shot",
-  "version": "3.8.0-0.1.0",
+  "version": "3.8.0-0.1.1",
   "description": "Capture a React Native view to an image",
   "harmony": {
     "alias": "react-native-view-shot"
@@ -27,6 +27,7 @@
     "url": "https://github.com/react-native-oh-library/react-native-view-shot.git"
   },
   "dependencies": {
+    "react-native-view-shot": "3.8.0",
     "html2canvas": "^1.4.1"
   },
   "peerDependencies": {
