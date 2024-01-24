@@ -1,11 +1,12 @@
 {
   "license": "MIT",
   "devDependencies": {
-    "rnoh": "file:../rnoh"
   },
   "name": "rnoh-view-shot",
   "description": "",
   "main": "index.ets",
-  "version": "1.0.0",
-  "dependencies": {}
+  "version": "1.0.1",
+  "dependencies": {
+    "rnoh": "file:../rnoh"
+  }
 }
