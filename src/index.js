@@ -1,4 +1,5 @@
 // @flow
+import { Component } from "react";
 import { View, Platform, findNodeHandle } from "react-native";
 import RNViewShot from "./NativeModule";
 
@@ -159,4 +160,136 @@ export function captureScreen(optionsObject?: Options): Promise<string> {
     );
   }
   return RNViewShot.captureScreen(options);
+}
+
+function checkCompatibleProps(props: Props) {
+  if (!props.captureMode && props.onCapture) {
+    // in that case, it's authorized if you call capture() yourself
+  } else if (props.captureMode && !props.onCapture) {
+    console.warn(
+      "react-native-view-shot: captureMode prop is defined but onCapture prop callback is missing"
+    );
+  } else if (
+    (props.captureMode === "continuous" || props.captureMode === "update") &&
+    props.options &&
+    props.options.result &&
+    props.options.result !== "tmpfile"
+  ) {
+    console.warn(
+      "react-native-view-shot: result=tmpfile is recommended for captureMode=" +
+        props.captureMode
+    );
+  }
+}
+
+export default class ViewShot extends Component<Props> {
+  static captureRef = captureRef;
+  static releaseCapture = releaseCapture;
+
+  root: ?View;
+
+  _raf: *;
+  lastCapturedURI: ?string;
+
+  resolveFirstLayout: (layout: Object) => void;
+  firstLayoutPromise: Promise<Object> = new Promise((resolve) => {
+    this.resolveFirstLayout = resolve;
+  });
+
+  capture = (): Promise<string> =>
+    this.firstLayoutPromise
+      .then(() => {
+        const { root } = this;
+        if (!root) return neverEndingPromise; // component is unmounted, you never want to hear back from the promise
+        return captureRef(root, this.props.options);
+      })
+      .then(
+        (uri: string) => {
+          this.onCapture(uri);
+          return uri;
+        },
+        (e: Error) => {
+          this.onCaptureFailure(e);
+          throw e;
+        }
+      );
+
+  onCapture = (uri: string) => {
+    if (!this.root) return;
+    if (this.lastCapturedURI) {
+      // schedule releasing the previous capture
+      setTimeout(releaseCapture, 500, this.lastCapturedURI);
+    }
+    this.lastCapturedURI = uri;
+    const { onCapture } = this.props;
+    if (onCapture) onCapture(uri);
+  };
+
+  onCaptureFailure = (e: Error) => {
+    if (!this.root) return;
+    const { onCaptureFailure } = this.props;
+    if (onCaptureFailure) onCaptureFailure(e);
+  };
+
+  syncCaptureLoop = (captureMode: ?string) => {
+    cancelAnimationFrame(this._raf);
+    if (captureMode === "continuous") {
+      let previousCaptureURI = "-"; // needs to capture at least once at first, so we use "-" arbitrary string
+      const loop = () => {
+        this._raf = requestAnimationFrame(loop);
+        if (previousCaptureURI === this.lastCapturedURI) return; // previous capture has not finished, don't capture yet
+        previousCaptureURI = this.lastCapturedURI;
+        this.capture();
+      };
+      this._raf = requestAnimationFrame(loop);
+    }
+  };
+
+  onRef = (ref: React$ElementRef<*>) => {
+    this.root = ref;
+  };
+
+  onLayout = (e: LayoutEvent) => {
+    const { onLayout } = this.props;
+    this.resolveFirstLayout(e.nativeEvent.layout);
+    if (onLayout) onLayout(e);
+  };
+
+  componentDidMount() {
+    if (__DEV__) checkCompatibleProps(this.props);
+    if (this.props.captureMode === "mount") {
+      this.capture();
+    } else {
+      this.syncCaptureLoop(this.props.captureMode);
+    }
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (this.props.captureMode !== undefined) {
+      if (this.props.captureMode !== prevProps.captureMode) {
+        this.syncCaptureLoop(this.props.captureMode);
+      }
+    }
+    if (this.props.captureMode === "update") {
+      this.capture();
+    }
+  }
+
+  componentWillUnmount() {
+    this.syncCaptureLoop(null);
+  }
+
+  render() {
+    const { children } = this.props;
+    return (
+      <View
+        ref={this.onRef}
+        collapsable={false}
+        onLayout={this.onLayout}
+        style={this.props.style}
+      >
+        {children}
+      </View>
+    );
+  }
 }
