@@ -44,3 +44,5 @@ captures/
 .externalNativeBuild
 .project
 
+*.tgz
+

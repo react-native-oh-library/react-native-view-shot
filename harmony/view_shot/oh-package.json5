@@ -2,11 +2,11 @@
   "license": "MIT",
   "devDependencies": {
   },
-  "name": "rnoh-view-shot",
+  "name": "@react-native-oh-tpl/react-native-view-shot",
   "description": "",
   "main": "index.ets",
-  "version": "1.0.1",
+  "version": "3.8.0-0.1.6",
   "dependencies": {
-    "rnoh": "file:../rnoh"
+    "@rnoh/react-native-openharmony": "file:../rnoh"
   }
 }

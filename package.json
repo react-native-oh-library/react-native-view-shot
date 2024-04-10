@@ -1,6 +1,6 @@
 {
   "name": "@react-native-oh-tpl/react-native-view-shot",
-  "version": "3.8.0-0.1.4",
+  "version": "3.8.0-0.1.6",
   "description": "Capture a React Native view to an image",
   "harmony": {
     "alias": "react-native-view-shot"
