@@ -5,8 +5,8 @@
   "name": "@react-native-oh-tpl/react-native-view-shot",
   "description": "",
   "main": "index.ets",
-  "version": "3.8.0-0.1.6",
+  "version": "3.8.0-0.1.7",
   "dependencies": {
-    "@rnoh/react-native-openharmony": "file:../rnoh"
+    "@rnoh/react-native-openharmony":"file:../react_native_openharmony"
   }
 }
