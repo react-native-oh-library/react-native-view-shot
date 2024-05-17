@@ -30,6 +30,8 @@ import photoAccessHelper from '@ohos.file.photoAccessHelper';
 import promptAction from '@ohos.promptAction';
 import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl';
 import window from '@ohos.window';
+import { util } from '@kit.ArkTS';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 type Options = {
   fileName?: string,
@@ -56,48 +58,67 @@ export class ViewShotTurboModule extends TurboModule {
   }
 
   captureRef(tag: number, option: Options): Promise<string> {
-    return new Promise<string>(async (resolve, reject) => {
-      if (await this.requestPermission()) {
-        componentSnapshot.get(tag + '').then((pixmap: image.PixelMap) => {
-          this.savePhotoOnDevice('ComponentSnapshot', option, pixmap).then(uri => {
-            resolve(uri);
-          }).catch(err => {
-            console.error(`componentSnapshot failed, message = ${JSON.stringify(err)}`);
-            reject(`componentSnapshot failed, message = ${JSON.stringify(err)}`);
+    return new Promise<string>((resolve, reject) => {
+      componentSnapshot.get(tag + '').then(async (pixmap: image.PixelMap) => {
+        if (option.result === 'base64') {
+          this.getImageBase64(pixmap, option.format).then((base64) => {
+            resolve(base64);
+          }).catch((err: BusinessError) => {
+            console.error(`componentSnapshot failed, message = ${err.message}`);
+            reject(`componentSnapshot failed, message = ${err.message}`);
           })
-        }).catch(err => {
-          console.error(`componentSnapshot failed, message = ${JSON.stringify(err)}`);
-          reject(`componentSnapshot failed, message = ${JSON.stringify(err)}`);
-        })
-      } else {
-        reject(`读写权限未授权`);
-      }
+        } else {
+          if (await this.requestPermission()) {
+            this.savePhotoOnDevice('ComponentSnapshot', option, pixmap).then(uri => {
+              resolve(uri);
+            }).catch((err: BusinessError) => {
+              console.error(`componentSnapshot failed, message = ${err.message}`);
+              reject(`componentSnapshot failed, message = ${err.message}`);
+            })
+          } else {
+            reject(`读写权限未授权`);
+          }
+        }
+      }).catch((err: BusinessError) => {
+        console.error(`componentSnapshot failed, message = ${err.message}`);
+        reject(`componentSnapshot failed, message = ${err.message}`);
+      })
+
     })
   }
 
   captureScreen(option: Options): Promise<string> {
-    this.requestPermission()
     return new Promise<string>(async (resolve, reject) => {
-      if (await this.requestPermission()) {
-        window.getLastWindow(this.ctx.uiAbilityContext).then(windowClass => {
-          windowClass.snapshot().then(pixmap => {
-            this.savePhotoOnDevice('ScreenSnapshot', option, pixmap).then(uri => {
-              resolve(uri);
-            }).catch(err => {
-              console.error(`ScreenSnapshot failed, message = ${JSON.stringify(err)}`);
-              reject(`ScreenSnapshot failed, message = ${JSON.stringify(err)}`);
+      window.getLastWindow(this.ctx.uiAbilityContext).then(windowClass => {
+        windowClass.snapshot().then(async (pixmap) => {
+          if (option.result === 'base64') {
+            this.getImageBase64(pixmap, option.format).then((base64) => {
+              resolve(base64);
+            }).catch((err: BusinessError) => {
+              console.error(`componentSnapshot failed, message = ${err.message}`);
+              reject(`componentSnapshot failed, message = ${err.message}`);
             })
-          }).catch(err => {
-            console.error(`ScreenSnapshot failed, message = ${JSON.stringify(err)}`);
-            reject(`ScreenSnapshot failed, message = ${JSON.stringify(err)}`);
-          })
-        }).catch(err => {
-          console.error(`ScreenSnapshot failed, message = ${JSON.stringify(err)}`);
-          reject(`ScreenSnapshot failed, message = ${JSON.stringify(err)}`);
+          } else {
+            if (await this.requestPermission()) {
+              this.savePhotoOnDevice('ScreenSnapshot', option, pixmap).then(uri => {
+                resolve(uri);
+              }).catch((err: BusinessError) => {
+                console.error(`ScreenSnapshot failed, message = ${err.message}`);
+                reject(`ScreenSnapshot failed, message = ${err.message}`);
+              })
+            } else {
+              reject(`读写权限未授权`);
+            }
+          }
+        }).catch((err: BusinessError) => {
+          console.error(`ScreenSnapshot failed, message = ${err.message}`);
+          reject(`ScreenSnapshot failed, message = ${err.message}`);
         })
-      } else {
-        reject(`读写权限未授权`);
-      }
+      }).catch((err: BusinessError) => {
+        console.error(`ScreenSnapshot failed, message = ${err.message}`);
+        reject(`ScreenSnapshot failed, message = ${err.message}`);
+      })
+
     })
   }
 
@@ -177,5 +198,19 @@ export class ViewShotTurboModule extends TurboModule {
     let seconds = date.getSeconds().toString();
     let milliseconds = date.getMilliseconds().toString();
     return year + (month > 10 ? month : '0' + month) + (day > 10 ? day : '0' + day) + hours + minutes + seconds + milliseconds;
+  }
+
+  async getImageBase64(pixmap: image.PixelMap, format: string): Promise<string> {
+    const imagePackageApi: image.ImagePacker = image.createImagePacker();
+    let packOpts: image.PackingOption = {
+      format: `image/${format}`,
+      quality: 100,
+    }
+    const readBuffer: ArrayBuffer = await imagePackageApi.packing(pixmap, packOpts);
+    let base64Helper = new util.Base64Helper();
+    let uint8Arr = new Uint8Array(readBuffer);
+    let pixelStr = base64Helper.encodeToStringSync(uint8Arr);
+    let base64Str = `data:image/${format};base64,${pixelStr}`;
+    return base64Str;
   }
 }
