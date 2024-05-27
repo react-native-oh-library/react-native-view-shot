@@ -210,7 +210,6 @@ export class ViewShotTurboModule extends TurboModule {
     let base64Helper = new util.Base64Helper();
     let uint8Arr = new Uint8Array(readBuffer);
     let pixelStr = base64Helper.encodeToStringSync(uint8Arr);
-    let base64Str = `data:image/${format};base64,${pixelStr}`;
-    return base64Str;
+    return pixelStr;
   }
 }
