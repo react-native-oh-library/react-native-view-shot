@@ -32,6 +32,7 @@ import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl';
 import window from '@ohos.window';
 import { util } from '@kit.ArkTS';
 import { BusinessError } from '@kit.BasicServicesKit';
+import Logger from './Logger';
 
 type Options = {
   fileName?: string,
@@ -50,7 +51,7 @@ const PERMISSIONS: Array<Permissions> = [
 ]
 
 export class ViewShotTurboModule extends TurboModule {
-  private phAccessHelper: photoAccessHelper.PhotoAccessHelper
+  private phAccessHelper: photoAccessHelper.PhotoAccessHelper;
 
   constructor(ctx: TurboModuleContext) {
     super(ctx);
@@ -64,7 +65,7 @@ export class ViewShotTurboModule extends TurboModule {
           this.getImageBase64(pixmap, option.format).then((base64) => {
             resolve(base64);
           }).catch((err: BusinessError) => {
-            console.error(`componentSnapshot failed, message = ${err.message}`);
+            Logger.error(`componentSnapshot failed, message = ${err.message}`);
             reject(`componentSnapshot failed, message = ${err.message}`);
           })
         } else {
@@ -72,7 +73,7 @@ export class ViewShotTurboModule extends TurboModule {
             this.savePhotoOnDevice('ComponentSnapshot', option, pixmap).then(uri => {
               resolve(uri);
             }).catch((err: BusinessError) => {
-              console.error(`componentSnapshot failed, message = ${err.message}`);
+              Logger.error(`componentSnapshot failed, message = ${err.message}`);
               reject(`componentSnapshot failed, message = ${err.message}`);
             })
           } else {
@@ -80,10 +81,9 @@ export class ViewShotTurboModule extends TurboModule {
           }
         }
       }).catch((err: BusinessError) => {
-        console.error(`componentSnapshot failed, message = ${err.message}`);
+        Logger.error(`componentSnapshot failed, message = ${err.message}`);
         reject(`componentSnapshot failed, message = ${err.message}`);
       })
-
     })
   }
 
@@ -95,7 +95,7 @@ export class ViewShotTurboModule extends TurboModule {
             this.getImageBase64(pixmap, option.format).then((base64) => {
               resolve(base64);
             }).catch((err: BusinessError) => {
-              console.error(`componentSnapshot failed, message = ${err.message}`);
+              Logger.error(`componentSnapshot failed, message = ${err.message}`);
               reject(`componentSnapshot failed, message = ${err.message}`);
             })
           } else {
@@ -103,7 +103,7 @@ export class ViewShotTurboModule extends TurboModule {
               this.savePhotoOnDevice('ScreenSnapshot', option, pixmap).then(uri => {
                 resolve(uri);
               }).catch((err: BusinessError) => {
-                console.error(`ScreenSnapshot failed, message = ${err.message}`);
+                Logger.error(`ScreenSnapshot failed, message = ${err.message}`);
                 reject(`ScreenSnapshot failed, message = ${err.message}`);
               })
             } else {
@@ -111,11 +111,11 @@ export class ViewShotTurboModule extends TurboModule {
             }
           }
         }).catch((err: BusinessError) => {
-          console.error(`ScreenSnapshot failed, message = ${err.message}`);
+          Logger.error(`ScreenSnapshot failed, message = ${err.message}`);
           reject(`ScreenSnapshot failed, message = ${err.message}`);
         })
       }).catch((err: BusinessError) => {
-        console.error(`ScreenSnapshot failed, message = ${err.message}`);
+        Logger.error(`ScreenSnapshot failed, message = ${err.message}`);
         reject(`ScreenSnapshot failed, message = ${err.message}`);
       })
 
@@ -125,7 +125,9 @@ export class ViewShotTurboModule extends TurboModule {
   releaseCapture(uri: string) {
     let file = fs.openSync(uri, fs.OpenMode.READ_WRITE);
     let path = file.path;
-    if (path == null) return;
+    if (path == null) {
+      return;
+    }
     fs.access(path).then((res: boolean) => {
       if (!res) {
         return;
@@ -163,7 +165,8 @@ export class ViewShotTurboModule extends TurboModule {
         if (uri != undefined) {
           const imagePacker = image.createImagePacker();
           // 设置编码输出流和编码参数
-          let packOpts: image.PackingOption = { format: "image/jpeg", quality: option.quality * 100 };
+          let packOpts: image.PackingOption =
+            { format: `image/${extension === 'jpg' ? 'jpeg' : 'png'}`, quality: option.quality * 100 };
           // 进行图片编码
           imagePacker.packing(pixmap, packOpts).then(data => {
             // 打开文件
@@ -171,17 +174,17 @@ export class ViewShotTurboModule extends TurboModule {
             // 编码成功，写操作
             fs.writeSync(file.fd, data);
             fs.closeSync(file);
-            resolve(uri)
+            resolve(uri);
             promptAction.showToast({
               message: '已成功保存至相册',
               duration: 1000
             })
           }).catch((error: Error) => {
-            console.error(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
+            Logger.error(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
             reject(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
           })
         } else {
-          console.error(`createAsset failed, message = ${JSON.stringify(err)}`);
+          Logger.error(`createAsset failed, message = ${JSON.stringify(err)}`);
           reject(`createAsset failed, message = ${JSON.stringify(err)}`);
         }
       })
@@ -197,13 +200,14 @@ export class ViewShotTurboModule extends TurboModule {
     let minutes = date.getMinutes().toString();
     let seconds = date.getSeconds().toString();
     let milliseconds = date.getMilliseconds().toString();
-    return year + (month > 10 ? month : '0' + month) + (day > 10 ? day : '0' + day) + hours + minutes + seconds + milliseconds;
+    return year + (month > 10 ? month : '0' + month) + (day > 10 ? day : '0' + day) + hours + minutes + seconds +
+      milliseconds;
   }
 
   async getImageBase64(pixmap: image.PixelMap, format: string): Promise<string> {
     const imagePackageApi: image.ImagePacker = image.createImagePacker();
     let packOpts: image.PackingOption = {
-      format: `image/${format}`,
+      format: `image/${format === 'jpg' ? 'jpeg' : 'png'}`,
       quality: 100,
     }
     const readBuffer: ArrayBuffer = await imagePackageApi.packing(pixmap, packOpts);
