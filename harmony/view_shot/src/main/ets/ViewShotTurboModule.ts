@@ -123,6 +123,9 @@ export class ViewShotTurboModule extends TurboModule {
   }
 
   releaseCapture(uri: string) {
+    if(!uri.startsWith('file://')){
+      return;
+    }
     let file = fs.openSync(uri, fs.OpenMode.READ_WRITE);
     let path = file.path;
     if (path == null) {
