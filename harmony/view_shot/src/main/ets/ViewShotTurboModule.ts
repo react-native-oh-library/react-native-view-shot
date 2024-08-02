@@ -28,7 +28,7 @@ import image from '@ohos.multimedia.image';
 import fs from '@ohos.file.fs';
 import photoAccessHelper from '@ohos.file.photoAccessHelper';
 import promptAction from '@ohos.promptAction';
-import abilityAccessCtrl, { Permissions } from '@ohos.abilityAccessCtrl';
+import { Context } from '@ohos.abilityAccessCtrl';
 import window from '@ohos.window';
 import { util } from '@kit.ArkTS';
 import { BusinessError } from '@kit.BasicServicesKit';
@@ -45,13 +45,9 @@ type Options = {
   handleGLSurfaceViewOnAndroid: boolean,
 };
 
-const PERMISSIONS: Array<Permissions> = [
-  'ohos.permission.READ_IMAGEVIDEO',
-  'ohos.permission.WRITE_IMAGEVIDEO'
-]
-
 export class ViewShotTurboModule extends TurboModule {
   private phAccessHelper: photoAccessHelper.PhotoAccessHelper;
+  private context: Context = getContext(this);
 
   constructor(ctx: TurboModuleContext) {
     super(ctx);
@@ -69,16 +65,12 @@ export class ViewShotTurboModule extends TurboModule {
             reject(`componentSnapshot failed, message = ${err.message}`);
           })
         } else {
-          if (await this.requestPermission()) {
-            this.savePhotoOnDevice('ComponentSnapshot', option, pixmap).then(uri => {
-              resolve(uri);
-            }).catch((err: BusinessError) => {
-              Logger.error(`componentSnapshot failed, message = ${err.message}`);
-              reject(`componentSnapshot failed, message = ${err.message}`);
-            })
-          } else {
-            reject(`读写权限未授权`);
-          }
+          this.savePhotoOnDevice('ComponentSnapshot', option, pixmap).then(uri => {
+            resolve(uri);
+          }).catch((err: BusinessError) => {
+            Logger.error(`componentSnapshot failed, message = ${err.message}`);
+            reject(`componentSnapshot failed, message = ${err.message}`);
+          })
         }
       }).catch((err: BusinessError) => {
         Logger.error(`componentSnapshot failed, message = ${err.message}`);
@@ -99,20 +91,13 @@ export class ViewShotTurboModule extends TurboModule {
               reject(`componentSnapshot failed, message = ${err.message}`);
             })
           } else {
-            if (await this.requestPermission()) {
-              this.savePhotoOnDevice('ScreenSnapshot', option, pixmap).then(uri => {
-                resolve(uri);
-              }).catch((err: BusinessError) => {
-                Logger.error(`ScreenSnapshot failed, message = ${err.message}`);
-                reject(`ScreenSnapshot failed, message = ${err.message}`);
-              })
-            } else {
-              reject(`读写权限未授权`);
-            }
+            this.savePhotoOnDevice('ScreenSnapshot', option, pixmap).then(uri => {
+              resolve(uri);
+            }).catch((err: BusinessError) => {
+              Logger.error(`componentSnapshot failed, message = ${err.message}`);
+              reject(`componentSnapshot failed, message = ${err.message}`);
+            })
           }
-        }).catch((err: BusinessError) => {
-          Logger.error(`ScreenSnapshot failed, message = ${err.message}`);
-          reject(`ScreenSnapshot failed, message = ${err.message}`);
         })
       }).catch((err: BusinessError) => {
         Logger.error(`ScreenSnapshot failed, message = ${err.message}`);
@@ -123,7 +108,7 @@ export class ViewShotTurboModule extends TurboModule {
   }
 
   releaseCapture(uri: string) {
-    if(!uri.startsWith('file://')){
+    if (!uri.startsWith('file://')) {
       return;
     }
     let file = fs.openSync(uri, fs.OpenMode.READ_WRITE);
@@ -142,55 +127,40 @@ export class ViewShotTurboModule extends TurboModule {
     fs.closeSync(file);
   }
 
-  requestPermission(): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      abilityAccessCtrl.createAtManager()
-        .requestPermissionsFromUser(this.ctx.uiAbilityContext, PERMISSIONS).then(result => {
-        if (result.authResults[0] == 0) {
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      }).catch(() => {
-        resolve(false);
-      })
-    });
-  }
-
   savePhotoOnDevice(title: string, option: Options, pixmap: image.PixelMap): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      let photoType = photoAccessHelper.PhotoType.IMAGE;
       let extension = option.format;
-      let options: photoAccessHelper.CreateOptions = {
-        title: option.fileName ? option.fileName : title + '-' + this.getNowTime()
-      }
-      this.phAccessHelper.createAsset(photoType, extension, options, (err, uri) => {
-        if (uri != undefined) {
-          const imagePacker = image.createImagePacker();
-          // 设置编码输出流和编码参数
-          let packOpts: image.PackingOption =
-            { format: `image/${extension === 'jpg' ? 'jpeg' : 'png'}`, quality: option.quality * 100 };
-          // 进行图片编码
-          imagePacker.packing(pixmap, packOpts).then(data => {
-            // 打开文件
-            let file = fs.openSync(uri, fs.OpenMode.WRITE_ONLY);
-            // 编码成功，写操作
-            fs.writeSync(file.fd, data);
-            fs.closeSync(file);
-            resolve(uri);
-            promptAction.showToast({
-              message: '已成功保存至相册',
-              duration: 1000
-            })
-          }).catch((error: Error) => {
-            Logger.error(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
-            reject(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
-          })
-        } else {
-          Logger.error(`createAsset failed, message = ${JSON.stringify(err)}`);
-          reject(`createAsset failed, message = ${JSON.stringify(err)}`);
+      let packOpts: image.PackingOption =
+        { format: `image/${extension === 'jpg' ? 'jpeg' : 'png'}`, quality: option.quality * 100 };
+      const imagePacker = image.createImagePacker();
+      title = option.fileName ? option.fileName : title + '-' + this.getNowTime();
+      const path: string = this.context.filesDir + `/${title}.${extension}`;
+      let photoCreateConfigs: Array<photoAccessHelper.PhotoCreationConfig> = [
+        {
+          title,
+          fileNameExtension: extension,
+          photoType: photoAccessHelper.PhotoType.IMAGE,
+          subtype: photoAccessHelper.PhotoSubtype.DEFAULT
         }
-      })
+      ];
+      this.phAccessHelper.showAssetsCreationDialog([path], photoCreateConfigs).then((res) => {
+        imagePacker.packing(pixmap, packOpts).then(data => {
+          let file = fs.openSync(res[0], fs.OpenMode.READ_WRITE);
+          fs.writeSync(file.fd, data);
+          fs.closeSync(file);
+          promptAction.showToast({
+            message: '已成功保存至相册',
+            duration: 1000
+          })
+          resolve(res[0]);
+        }).catch((error: BusinessError) => {
+          Logger.error(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
+          reject(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
+        })
+      }).catch((error: BusinessError) => {
+          Logger.error(`Failed to save the image. And the error is: ${JSON.stringify(error)}`);
+          reject(`Failed to save the image. And the error is: ${JSON.stringify(error)}`);
+        })
     })
   }
 
