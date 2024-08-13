@@ -57,7 +57,7 @@ export class ViewShotTurboModule extends TurboModule {
   captureRef(tag: number, option: Options): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       componentSnapshot.get(tag + '').then(async (pixmap: image.PixelMap) => {
-        if (option.result === 'base64' || 'data-uri') {
+        if (option.result === 'base64' || option.result === 'data-uri') {
           this.getImageBase64(pixmap, option.format, option.result).then((res) => {
             resolve(res);
           }).catch((err: BusinessError) => {
@@ -83,7 +83,7 @@ export class ViewShotTurboModule extends TurboModule {
     return new Promise<string>(async (resolve, reject) => {
       window.getLastWindow(this.ctx.uiAbilityContext).then(windowClass => {
         windowClass.snapshot().then(async (pixmap) => {
-          if (option.result === 'base64' || 'data-uri') {
+          if (option.result === 'base64' || option.result === 'data-uri') {
             this.getImageBase64(pixmap, option.format, option.result).then((res) => {
               resolve(res);
             }).catch((err: BusinessError) => {
