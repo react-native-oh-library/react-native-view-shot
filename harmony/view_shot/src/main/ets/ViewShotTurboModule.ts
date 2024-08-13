@@ -57,9 +57,9 @@ export class ViewShotTurboModule extends TurboModule {
   captureRef(tag: number, option: Options): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       componentSnapshot.get(tag + '').then(async (pixmap: image.PixelMap) => {
-        if (option.result === 'base64') {
-          this.getImageBase64(pixmap, option.format).then((base64) => {
-            resolve(base64);
+        if (option.result === 'base64' || 'data-uri') {
+          this.getImageBase64(pixmap, option.format, option.result).then((res) => {
+            resolve(res);
           }).catch((err: BusinessError) => {
             Logger.error(`componentSnapshot failed, message = ${err.message}`);
             reject(`componentSnapshot failed, message = ${err.message}`);
@@ -83,14 +83,14 @@ export class ViewShotTurboModule extends TurboModule {
     return new Promise<string>(async (resolve, reject) => {
       window.getLastWindow(this.ctx.uiAbilityContext).then(windowClass => {
         windowClass.snapshot().then(async (pixmap) => {
-          if (option.result === 'base64') {
-            this.getImageBase64(pixmap, option.format).then((base64) => {
-              resolve(base64);
+          if (option.result === 'base64' || 'data-uri') {
+            this.getImageBase64(pixmap, option.format, option.result).then((res) => {
+              resolve(res);
             }).catch((err: BusinessError) => {
               Logger.error(`componentSnapshot failed, message = ${err.message}`);
               reject(`componentSnapshot failed, message = ${err.message}`);
             })
-          } else {
+          }else{
             this.savePhotoOnDevice('ScreenSnapshot', option, pixmap).then(uri => {
               resolve(uri);
             }).catch((err: BusinessError) => {
@@ -103,7 +103,6 @@ export class ViewShotTurboModule extends TurboModule {
         Logger.error(`ScreenSnapshot failed, message = ${err.message}`);
         reject(`ScreenSnapshot failed, message = ${err.message}`);
       })
-
     })
   }
 
@@ -144,23 +143,25 @@ export class ViewShotTurboModule extends TurboModule {
         }
       ];
       this.phAccessHelper.showAssetsCreationDialog([path], photoCreateConfigs).then((res) => {
-        imagePacker.packing(pixmap, packOpts).then(data => {
-          let file = fs.openSync(res[0], fs.OpenMode.READ_WRITE);
-          fs.writeSync(file.fd, data);
-          fs.closeSync(file);
-          promptAction.showToast({
-            message: '已成功保存至相册',
-            duration: 1000
+        if (res.length) {
+          imagePacker.packing(pixmap, packOpts).then(data => {
+            let file = fs.openSync(res[0], fs.OpenMode.READ_WRITE);
+            fs.writeSync(file.fd, data);
+            fs.closeSync(file);
+            promptAction.showToast({
+              message: '已成功保存至相册',
+              duration: 1000
+            })
+            resolve(res[0]);
+          }).catch((error: BusinessError) => {
+            Logger.error(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
+            reject(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
           })
-          resolve(res[0]);
-        }).catch((error: BusinessError) => {
-          Logger.error(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
-          reject(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
-        })
+        }
       }).catch((error: BusinessError) => {
-          Logger.error(`Failed to save the image. And the error is: ${JSON.stringify(error)}`);
-          reject(`Failed to save the image. And the error is: ${JSON.stringify(error)}`);
-        })
+        Logger.error(`Failed to save the image. And the error is: ${JSON.stringify(error)}`);
+        reject(`Failed to save the image. And the error is: ${JSON.stringify(error)}`);
+      })
     })
   }
 
@@ -177,7 +178,7 @@ export class ViewShotTurboModule extends TurboModule {
       milliseconds;
   }
 
-  async getImageBase64(pixmap: image.PixelMap, format: string): Promise<string> {
+  async getImageBase64(pixmap: image.PixelMap, format: string, result: string): Promise<string> {
     const imagePackageApi: image.ImagePacker = image.createImagePacker();
     let packOpts: image.PackingOption = {
       format: `image/${format === 'jpg' ? 'jpeg' : 'png'}`,
@@ -186,7 +187,12 @@ export class ViewShotTurboModule extends TurboModule {
     const readBuffer: ArrayBuffer = await imagePackageApi.packing(pixmap, packOpts);
     let base64Helper = new util.Base64Helper();
     let uint8Arr = new Uint8Array(readBuffer);
-    let pixelStr = base64Helper.encodeToStringSync(uint8Arr);
-    return pixelStr;
+    let base64Text = base64Helper.encodeToStringSync(uint8Arr);
+    if (result === 'data-uri') {
+      let dataUriStr = `data:image/${format};base64,${base64Text}`;
+      return dataUriStr;
+    } else {
+      return base64Text;
+    }
   }
 }
