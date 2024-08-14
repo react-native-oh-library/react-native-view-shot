@@ -107,23 +107,21 @@ export class ViewShotTurboModule extends TurboModule {
   }
 
   releaseCapture(uri: string) {
-    if (!uri.startsWith('file://')) {
+    if (!uri.startsWith('/data')) {
       return;
     }
     let file = fs.openSync(uri, fs.OpenMode.READ_WRITE);
     let path = file.path;
-    if (path == null) {
+    if (path === null) {
       return;
     }
     fs.access(path).then((res: boolean) => {
-      if (!res) {
-        return;
-      }
-      if (file.getParent() == this.ctx.uiAbilityContext.cacheDir) {
-        fs.unlinkSync(path);
+      if(res){
+        if (file.getParent() === this.ctx.uiAbilityContext.tempDir) {
+          fs.unlinkSync(path);
+        }
       }
     })
-    fs.closeSync(file);
   }
 
   savePhotoOnDevice(title: string, option: Options, pixmap: image.PixelMap): Promise<string> {
