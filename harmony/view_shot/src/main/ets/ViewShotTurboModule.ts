@@ -61,20 +61,20 @@ export class ViewShotTurboModule extends TurboModule {
           this.getImageBase64(pixmap, option.format, option.result).then((res) => {
             resolve(res);
           }).catch((err: BusinessError) => {
-            Logger.error(`componentSnapshot failed, message = ${err.message}`);
-            reject(`componentSnapshot failed, message = ${err.message}`);
+            Logger.error(`componentSnapshot failed, message = ${err}`);
+            reject(`componentSnapshot failed, message = ${err}`);
           })
         } else {
           this.savePhotoOnDevice('ComponentSnapshot', option, pixmap).then(uri => {
             resolve(uri);
           }).catch((err: BusinessError) => {
-            Logger.error(`componentSnapshot failed, message = ${err.message}`);
-            reject(`componentSnapshot failed, message = ${err.message}`);
+            Logger.error(`componentSnapshot failed, message = ${err}`);
+            reject(`componentSnapshot failed, message = ${err}`);
           })
         }
       }).catch((err: BusinessError) => {
-        Logger.error(`componentSnapshot failed, message = ${err.message}`);
-        reject(`componentSnapshot failed, message = ${err.message}`);
+        Logger.error(`componentSnapshot failed, message = ${err}`);
+        reject(`componentSnapshot failed, message = ${err}`);
       })
     })
   }
@@ -87,21 +87,21 @@ export class ViewShotTurboModule extends TurboModule {
             this.getImageBase64(pixmap, option.format, option.result).then((res) => {
               resolve(res);
             }).catch((err: BusinessError) => {
-              Logger.error(`componentSnapshot failed, message = ${err.message}`);
-              reject(`componentSnapshot failed, message = ${err.message}`);
+              Logger.error(`componentSnapshot failed, message = ${err}`);
+              reject(`componentSnapshot failed, message = ${err}`);
             })
           }else{
             this.savePhotoOnDevice('ScreenSnapshot', option, pixmap).then(uri => {
               resolve(uri);
             }).catch((err: BusinessError) => {
-              Logger.error(`componentSnapshot failed, message = ${err.message}`);
-              reject(`componentSnapshot failed, message = ${err.message}`);
+              Logger.error(`componentSnapshot failed, message = ${err}`);
+              reject(`componentSnapshot failed, message = ${err}`);
             })
           }
         })
       }).catch((err: BusinessError) => {
-        Logger.error(`ScreenSnapshot failed, message = ${err.message}`);
-        reject(`ScreenSnapshot failed, message = ${err.message}`);
+        Logger.error(`ScreenSnapshot failed, message = ${err}`);
+        reject(`ScreenSnapshot failed, message = ${err}`);
       })
     })
   }
@@ -133,34 +133,19 @@ export class ViewShotTurboModule extends TurboModule {
         { format: `image/${extension === 'jpg' ? 'jpeg' : 'png'}`, quality: option.quality * 100 };
       const imagePacker = image.createImagePacker();
       title = option.fileName ? option.fileName : title + '-' + this.getNowTime();
-      const path: string = this.context.filesDir + `/${title}.${extension}`;
-      let photoCreateConfigs: Array<photoAccessHelper.PhotoCreationConfig> = [
-        {
-          title,
-          fileNameExtension: extension,
-          photoType: photoAccessHelper.PhotoType.IMAGE,
-          subtype: photoAccessHelper.PhotoSubtype.DEFAULT
-        }
-      ];
-      this.phAccessHelper.showAssetsCreationDialog([path], photoCreateConfigs).then((res) => {
-        if (res.length) {
-          imagePacker.packing(pixmap, packOpts).then(data => {
-            let file = fs.openSync(res[0], fs.OpenMode.READ_WRITE);
-            fs.writeSync(file.fd, data);
-            fs.closeSync(file);
-            promptAction.showToast({
-              message: '已成功保存至相册',
-              duration: 1000
-            })
-            resolve(res[0]);
-          }).catch((error: BusinessError) => {
-            Logger.error(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
-            reject(`Failed to pack the image. And the error is: ${JSON.stringify(error)}`);
-          })
-        }
+      const path: string = this.context.tempDir + `/${title}.${extension}`;
+      let file = fs.openSync(path, fs.OpenMode.CREATE | fs.OpenMode.READ_WRITE);
+      imagePacker.packing(pixmap, packOpts).then(data => {
+        fs.writeSync(file.fd, data);
+        fs.closeSync(file);
+        promptAction.showToast({
+          message: '已成功保存',
+          duration: 1000
+        })
+        resolve(path);
       }).catch((error: BusinessError) => {
-        Logger.error(`Failed to save the image. And the error is: ${JSON.stringify(error)}`);
-        reject(`Failed to save the image. And the error is: ${JSON.stringify(error)}`);
+        Logger.error(`componentSnapshot failed, message = ${error}`);
+        reject(`componentSnapshot failed, message = ${error}`);
       })
     })
   }
