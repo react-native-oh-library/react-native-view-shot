@@ -31,6 +31,7 @@ import window from '@ohos.window';
 import { util } from '@kit.ArkTS';
 import { BusinessError } from '@kit.BasicServicesKit';
 import Logger from './Logger';
+import { Size } from '@kit.ArkUI';
 
 type Options = {
   fileName?: string,
@@ -52,7 +53,13 @@ export class ViewShotTurboModule extends TurboModule {
 
   captureRef(tag: number, option: Options): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      componentSnapshot.get(tag + '').then(async (pixmap: image.PixelMap) => {
+      componentSnapshot.get(tag + '').then((pixmap: image.PixelMap) => {
+        let originImageInfo: Size = pixmap.getImageInfoSync().size;
+        let dstX = option.width ?? originImageInfo.width;
+        let dstY = option.height ?? originImageInfo.height;
+        let scaleX = dstX / originImageInfo.width;
+        let scaleY = dstY / originImageInfo.height;
+        pixmap.scaleSync(scaleX, scaleY);
         if (option.result === 'base64' || option.result === 'data-uri') {
           this.getImageBase64(pixmap, option).then((res) => {
             resolve(res);
@@ -78,7 +85,13 @@ export class ViewShotTurboModule extends TurboModule {
   captureScreen(option: Options): Promise<string> {
     return new Promise<string>(async (resolve, reject) => {
       window.getLastWindow(this.ctx.uiAbilityContext).then(windowClass => {
-        windowClass.snapshot().then(async (pixmap) => {
+        windowClass.snapshot().then((pixmap) => {
+          let originImageInfo: Size = pixmap.getImageInfoSync().size;
+          let dstX = option.width ?? originImageInfo.width;
+          let dstY = option.height ?? originImageInfo.height;
+          let scaleX = dstX / originImageInfo.width;
+          let scaleY = dstY / originImageInfo.height;
+          pixmap.scaleSync(scaleX, scaleY);
           if (option.result === 'base64' || option.result === 'data-uri') {
             this.getImageBase64(pixmap, option).then((res) => {
               resolve(res);
