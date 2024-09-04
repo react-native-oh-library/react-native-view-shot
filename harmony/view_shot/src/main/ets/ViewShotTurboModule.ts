@@ -145,6 +145,7 @@ export class ViewShotTurboModule extends TurboModule {
       imagePacker.packing(pixmap, packOpts).then(data => {
         fs.writeSync(file.fd, data);
         fs.closeSync(file);
+        pixmap.release();
         resolve(path);
       }).catch((error: BusinessError) => {
         Logger.error(`componentSnapshot failed, message = ${error}`);
@@ -176,6 +177,7 @@ export class ViewShotTurboModule extends TurboModule {
     let base64Helper = new util.Base64Helper();
     let uint8Arr = new Uint8Array(readBuffer);
     let base64Text = base64Helper.encodeToStringSync(uint8Arr);
+    pixmap.release();
     if (options.result === 'data-uri') {
       let dataUriStr = `data:image/${options.format};base64,${base64Text}`;
       return dataUriStr;
