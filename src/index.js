@@ -1,5 +1,5 @@
 // @flow
-import { Component } from "react";
+import React, { Component } from "react";
 import { View, Platform, findNodeHandle } from "react-native";
 import RNViewShot from "./NativeModule";
 
