@@ -258,7 +258,9 @@ export default class ViewShot extends Component<Props> {
   componentDidMount() {
     if (__DEV__) checkCompatibleProps(this.props);
     if (this.props.captureMode === "mount") {
-      this.capture();
+      setTimeout(()=>{
+        this.capture();
+      }, 100);
     } else {
       this.syncCaptureLoop(this.props.captureMode);
     }
