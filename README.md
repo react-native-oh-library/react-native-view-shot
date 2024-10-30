@@ -1,4 +1,4 @@
-# @react-native-ohos/react-native-view-shot
+# @react-native-oh-tpl/react-native-view-shot
 
 This project is based on [react-native-view-shot](https://github.com/gre/react-native-view-shot)
 
