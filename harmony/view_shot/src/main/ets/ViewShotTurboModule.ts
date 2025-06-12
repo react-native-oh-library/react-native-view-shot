@@ -53,7 +53,17 @@ export class ViewShotTurboModule extends TurboModule {
 
   captureRef(tag: number, option: Options): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      componentSnapshot.get(tag + '').then((pixmap: image.PixelMap) => {
+      let id
+      if (this.ctx.rnInstance["getNativeNodeIdByTag"] !== undefined && typeof this.ctx.rnInstance["getNativeNodeIdByTag"] === "function") {
+        id = JSON.parse(JSON.stringify(this.ctx.rnInstance["getNativeNodeIdByTag"](tag)));
+        if (typeof id === "object") {
+           id = id.ok
+        }
+      } else {
+        let id = tag + ''
+      }
+
+      componentSnapshot.get(id).then((pixmap: image.PixelMap) => {
         let originImageInfo: Size = pixmap.getImageInfoSync().size;
         let dstX = option.width ?? originImageInfo.width;
         let dstY = option.height ?? originImageInfo.height;
