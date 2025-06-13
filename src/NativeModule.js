@@ -1,8 +1,8 @@
 // @flow
-import { NativeModules } from 'react-native';
+import { NativeModules, TurboModuleRegistry} from 'react-native';
 
 // @ts-ignore
-const isTurboModuleEnabled = global.__turboModuleProxy != null;
+const isTurboModuleEnabled = TurboModuleRegistry.get("ViewShotTurboModule") != null;
 
 const RNViewShot = isTurboModuleEnabled
   ? // eslint-disable-next-line @typescript-eslint/no-var-requires
