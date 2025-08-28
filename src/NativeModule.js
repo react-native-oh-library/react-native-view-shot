@@ -2,7 +2,7 @@
 import { NativeModules } from 'react-native';
 
 // @ts-ignore
-const isTurboModuleEnabled = global.__turboModuleProxy != null;
+const isTurboModuleEnabled = global.nativeModuleProxy != null;
 
 const RNViewShot = isTurboModuleEnabled
   ? // eslint-disable-next-line @typescript-eslint/no-var-requires
